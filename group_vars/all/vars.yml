@@ -1,0 +1,29 @@
+server_user: deploy
+server_group: deploy
+docker_group: docker
+
+eis_docker_images_repo: https://github.com/internetee/docker-images.git
+eis_docker_images_dest: ../eis_dockers
+registry_repo: https://github.com/internetee/registry
+registry_repo_dest: ../registry
+auction_repo: https://github.com/internetee/auction_center
+auction_repo_dest: ../auction_center
+whois_repo: https://github.com/internetee/whois
+whois_repo_dest: ../whois
+rest_whois_repo: https://github.com/internetee/rest-whois 
+rest_whois_repo_dest: ../rest-whois
+epp_proxy: https://github.com/internetee/epp_proxy
+epp_proxy_dest: ../epp_proxy
+billing: "https://{{ github.username | urlencode }}:{{ github.password | urlencode }}@github.com/internetee/eis_billing_system.git"
+billing_dest: ../eis_billing_system
+registrar: https://github.com/internetee/registrar_center2.git
+registrar_dest: ../registrar_center
+
+
+rest_whois_host: rest-whois.test
+whois_host: whois.test
+registry_host: registry.test
+epp_host: epp.test
+registrar_host: registrar_center.test
+registrant_host: registrant.test
+billing_host: eis_billing_system.test

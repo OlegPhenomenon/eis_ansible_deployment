@@ -1,0 +1,41 @@
+# rake time:zones:all
+time_zone: 'UTC'
+
+whitelist_ip: '127.0.0.1, 127.0.0.2'
+
+# With the following test keys,
+# you will always get No CAPTCHA and all verification requests will pass.
+# Site key: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
+# Secret key: 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+recaptcha_site_key: ''
+recaptcha_secret_key: ''
+hcaptcha_site_key: ''
+hcaptcha_secret_key:  ''
+
+# Variables for mailer
+mailer_from_address: 'no-reply@internet.ee'
+mailer_host: 'rest-whois.test'
+smtp_address: 'host.docker.internal'
+smtp_port: '1025' # 587, 465
+smtp_user_name: ''
+smtp_password: ''
+# If you need to specify a HELO domain, you can do it here.
+smtp_domain: '' # 'domain for HELO checking'
+# Use "none" only when for a self-signed and/or wildcard certificate
+smtp_openssl_verify_mode: 'peer' # 'none', 'peer', 'client_once','fail_if_no_peer_cert'
+# Detects if STARTTLS is enabled in your SMTP server and starts to use it. Defaults to true.
+# Set this to false if there is a problem with your server certificate that you cannot resolve.
+smtp_enable_starttls_auto: 'true' # 'false'
+# If your mail server requires authentication, please change.
+smtp_authentication: 'plain' # 'plain', 'login', 'cram_md5'
+
+main_page_url: https://internet.ee # Main URL where user is redirected to in case of contact requests
+
+# You can use `rake secret` to generate a secure secret key.
+# Your secret key is used for verifying the integrity of signed cookies.
+# If you change this key, all old signed cookies will become invalid!
+secret_key_base: 'please-change-it-you-can-generate-it-with-rake-secret'
+
+registry_api_key: 'testkey'
+
+registry_api_url: 'http://registry:3000/api/v1/contact_requests/'

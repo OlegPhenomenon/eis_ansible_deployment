@@ -1,0 +1,11 @@
+group_vars/all/vault.yml
+roles/preconfig/files/auction/customization.yml
+roles/preconfig/files/auction/database.yml
+roles/preconfig/files/eis_billing_system/database.yml
+roles/preconfig/files/registrar_center/application.yml
+roles/preconfig/files/registry/database.yml
+roles/preconfig/files/registry/application.yml
+roles/preconfig/files/registry/development.rb
+roles/preconfig/files/rest-whois/database.yml
+roles/preconfig/files/rest-whois/application.yml
+roles/preconfig/files/whois/database.yml

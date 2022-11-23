@@ -1,0 +1,37 @@
+default: &default
+  host: <%= ENV.fetch("APP_DBHOST") { "localhost" } %>
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("APP_DB_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch("APP_DBUSER") { "postgres" } %>
+  password: postgres
+
+development:
+  <<: *default
+  database: registry_development
+  pool: 5
+  timeout: 5000
+
+whois_development:
+  <<: *default
+  database: registry_whois_development
+
+api_log_development:
+  <<: *default
+  database: registry_api_log_development
+
+test:
+  <<: *default
+  database: registry_test
+
+whois_test:
+  <<: *default
+  database: registry_whois_test
+
+api_log_test:
+  <<: *default
+  database: registry_api_log_test
+
+whois_records:
+  <<: *default
+  database: registry_whois_development

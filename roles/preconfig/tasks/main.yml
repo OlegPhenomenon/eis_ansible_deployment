@@ -1,0 +1,120 @@
+- name: Create directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ eis_docker_images_dest }}"
+    - "{{ registry_repo_dest }}"
+    - "{{ auction_repo_dest }}"
+    - "{{ whois_repo_dest }}"
+    - "{{ rest_whois_repo_dest }}"
+    - "{{ epp_proxy_dest }}"
+    - "{{ billing_dest }}"
+    - "{{ registrar_dest }}"
+
+- name: Clone EIS repos
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    force: true
+  loop:
+    - { repo: "{{ eis_docker_images_repo }}", dest: "{{ eis_docker_images_dest }}"}
+    - { repo: "{{ registry_repo }}", dest: "{{ registry_repo_dest }}"}
+    - { repo: "{{ auction_repo }}", dest: "{{ auction_repo_dest }}"}
+    - { repo: "{{ whois_repo }}", dest: "{{ whois_repo_dest }}"}
+    - { repo: "{{ rest_whois_repo }}", dest: "{{ rest_whois_repo_dest }}"}
+    - { repo: "{{ epp_proxy }}", dest: "{{ epp_proxy_dest }}"}
+    - { repo: "{{ billing }}", dest: "{{ billing_dest }}"}
+    - { repo: "{{ registrar }}", dest: "{{ registrar_dest }}"}
+
+- name: Move files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - { src: "{{ role_path }}/files/registry/application.yml",
+        dest: "{{ registry_repo_dest }}/config/application.yml" }
+    - { src: "{{ role_path }}/files/registry/database.yml",
+        dest: "{{ registry_repo_dest }}/config/database.yml" }
+    - { src: "{{ role_path }}/files/registry/development.rb",
+        dest: "{{ registry_repo_dest }}/config/environments/development.rb" }
+    - { src: "{{ role_path }}/files/registry/Dockerfile.dev",
+        dest: "{{ registry_repo_dest }}/Dockerfile.dev" }
+
+    - { src: "{{ role_path }}/files/auction/customization.yml",
+        dest: "{{ auction_repo_dest }}/config/customization.yml" }
+    - { src: "{{ role_path }}/files/auction/database.yml",
+        dest: "{{ auction_repo_dest }}/config/database.yml" }
+    - { src: "{{ role_path }}/files/auction/Dockerfile.dev",
+        dest: "{{ auction_repo_dest }}/Dockerfile.dev" }
+
+    - { src: "{{ role_path }}/files/epp-proxy/sys.config",
+        dest: "{{ epp_proxy_dest }}/config/sys.config" }
+
+    - { src: "{{ role_path }}/files/rest-whois/application.yml",
+        dest: "{{ rest_whois_repo_dest }}/config/application.yml" }
+
+    - { src: "{{ role_path }}/files/whois/database.yml",
+        dest: "{{ whois_repo_dest }}/config/database.yml" }
+
+    - { src: "{{ role_path }}/files/rest-whois/database.yml",
+        dest: "{{ rest_whois_repo_dest }}/config/database.yml" }
+
+    - { src: "{{ role_path }}/files/eis_billing_system/database.yml",
+        dest: "{{ billing_dest }}/config/database.yml" }
+    - { src: "{{ role_path }}/files/eis_billing_system/Dockerfile.dev",
+        dest: "{{ billing_dest }}/Dockerfile.dev" }
+    - { src: "{{ role_path }}/files/eis_billing_system/eis_billing_system.test",
+        dest: "{{ eis_docker_images_dest }}/nginx/sites-enabled/eis_billing_system.test" }
+
+    - { src: "{{ role_path }}/files/registrar_center/Dockerfile.dev",
+        dest: "{{ registrar_dest }}/Dockerfile.dev" }
+    - { src: "{{ role_path }}/files/registrar_center/application.yml",
+        dest: "{{ registrar_dest }}/config/application.yml" }
+    - { src: "{{ role_path }}/files/registrar_center/registrar_center.test",
+        dest: "{{ eis_docker_images_dest }}/nginx/sites-enabled/registrar_center.test" }
+
+    - { src: "{{ role_path }}/files/nginx/apache.crt",
+        dest: "{{ eis_docker_images_dest }}/shared/ca/certs/apache.crt" }
+
+    - { src: "{{ role_path }}/files/nginx/apache.key",
+        dest: "{{ eis_docker_images_dest }}/shared/ca/private/apache.key" }
+
+- name: Recursively change ownership of a directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: oleg
+    group: oleg
+  loop:
+  - "{{ eis_docker_images_dest }}"
+  - "{{ registry_repo_dest }}"
+  - "{{ auction_repo_dest }}"
+  - "{{ whois_repo_dest }}"
+  - "{{ rest_whois_repo_dest }}"
+  - "{{ epp_proxy_dest }}"
+  - "{{ registrar_dest }}"
+  - "{{ billing_dest }}"
+
+- lineinfile:
+    dest: /etc/hosts
+    line: "127.0.0.1 {{ item }}"
+    state: present
+  loop:
+    - "{{rest_whois_host}}"
+    - "{{whois_host}}"
+    - "{{registry_host}}"
+    - "{{epp_host}}"
+    - "{{registrar_host}}"
+    - "{{registrant_host}}"
+    - "{{billing_host}}"
+  become: true
+
+# 127.0.0.1       rest-whois.test
+# 127.0.0.1       whois.test
+# 127.0.0.1       registry.test
+# 127.0.0.1       epp.test
+# 127.0.0.1       registrar.test
+# 127.0.0.1       registrant.test

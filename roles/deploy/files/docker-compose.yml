@@ -1,0 +1,225 @@
+version: "3"
+
+services:
+  registry:
+    tty: true
+    stdin_open: true
+    image: registry
+    build:
+      context: ./../registry
+      dockerfile: Dockerfile.dev
+    links:
+      - db
+    environment:
+      - APP_DBHOST=db
+      - REDIS_URL=redis://redis:6379/12
+      - PARALLEL_WORKERS=1
+    volumes:
+      - ./../registry:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+      - tmp:/opt/webapps/app/tmp/
+      - ./../:/shared
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    restart: always
+    depends_on:
+      - db
+
+  redis:
+    image: redis
+    volumes:
+      - ../../tmp/db:/var/lib/redis/data
+
+  sidekiq:
+    build:
+      context: ./../registry
+    links:
+      - db
+    command: 'bundle exec sidekiq'
+    volumes:
+      - ./../registry:/opt/webapps/app
+    environment:
+      - APP_DBHOST=db
+      - REDIS_URL=redis://redis:6379/12
+    depends_on:
+      - redis
+
+  epp:
+    tty: true
+    stdin_open: true
+    image: registry
+    links:
+      - db
+    environment:
+      - APP_DBHOST=db
+      - REDIS_URL=redis://redis:6379/12
+    volumes:
+      - ./../registry:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+      - tmp:/opt/webapps/app/tmp/
+    command: bash -c "rm -f tmp/pids/epp.pid && bundle exec rails server --pid tmp/pids/epp.pid -b 0.0.0.0"
+    restart: on-failure
+
+  epp_proxy:
+    tty: true
+    stdin_open: true
+    build:
+      context: ./../epp_proxy
+      dockerfile: Dockerfile.Erlang-ruby.base
+    links:
+      - db
+    ports:
+      - "700:700"
+      - "3333:3333"
+    volumes:
+      - ./../epp_proxy:/opt/erlang/epp_proxy
+      - ./shared/ca:/opt/ca
+    command: bash -c "rebar3 auto --config config/docker.config"
+    restart: on-failure
+
+  rest-whois:
+    tty: true
+    stdin_open: true
+    image: rest-whois
+    build:
+      context: ./../rest-whois
+    links:
+      - db
+    environment:
+      - APP_DBHOST=db
+    volumes:
+      - ./../rest-whois:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    restart: on-failure
+
+  whois:
+    tty: true
+    stdin_open: true
+    ports:
+      - "43:43"
+    image: whois
+    build:
+      context: ./../whois
+    links:
+      - db
+    environment:
+      - APP_DBHOST=db
+    volumes:
+      - ./../whois:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+    command: bash -c "rm -f tmp/pids/whois_server.pid && ruby whois.rb run"
+    restart: on-failure
+
+  auction_center:
+    tty: true
+    stdin_open: true
+    image: auction_center
+    build:
+      context: ./../auction_center
+      dockerfile: Dockerfile.dev
+    links:
+      - db
+    environment:
+      - APP_DBHOST=db
+      - HEALTHCHECK_USER=healthcheck
+      - HEALTHCHECK_PASSWORD=healthcheck
+    volumes:
+      - ./../auction_center:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    restart: on-failure
+
+  auction_center_delayed_job:
+    image: auction_center
+    tty: true
+    stdin_open: true
+    links:
+      - db
+    environment:
+      - APP_DBHOST=db
+    volumes:
+      - ./../auction_center:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+    command: bash -c "bundle exec rails jobs:work"
+    restart: on-failure
+
+  nginx:
+    image: nginx:1.19.0
+    tty: true
+    stdin_open: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./shared/ca:/opt/ca
+    restart: on-failure
+
+  db:
+    image: postgres:13.4
+    volumes:
+      # - pg:/var/lib/postgresql/data
+      - pg_new:/var/lib/postgresql/data
+      - ./shared/db_data:/opt/ca
+    environment:
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5433:5432"
+    restart: always
+    environment:
+      POSTGRES_DB: "db"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+
+  registrar_center:
+    tty: true
+    stdin_open: true
+    image: registrar_center
+    build:
+      context: ./../registrar_center
+      dockerfile: Dockerfile.dev
+    links:
+      - db
+    environment:
+      - REPP_HOST=http://registry:3000
+      - REPP_ENDPOINT=/repp/v1
+      - cert_path=/opt/ca/certs/webclient.crt.pem
+      - key_path=/opt/ca/private/webclient.key.pem
+    volumes:
+      - ./../registrar_center:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+      - tmp:/opt/webapps/app/tmp/
+      - ./../:/shared
+    command: sh -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    restart: always
+    depends_on:
+      - db
+
+  eis_billing_system:
+    tty: true
+    stdin_open: true
+    image: eis_billing_system
+    build:
+      context: ./../eis_billing_system
+      dockerfile: Dockerfile.dev
+    links:
+      - db
+      - registry
+    environment:
+      - APP_DBHOST=db
+      - PARALLEL_WORKERS=1
+      - REDIS_URL=redis://redis:6379/12
+    volumes:
+      - ./../eis_billing_system:/opt/webapps/app
+      - ./shared/ca:/opt/ca
+      - tmp:/opt/webapps/app/tmp/
+      - ./../:/shared
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -b 0.0.0.0"
+    restart: always
+    depends_on:
+      - db
+
+volumes:
+  pg_new:
+  pg:
+  tmp:

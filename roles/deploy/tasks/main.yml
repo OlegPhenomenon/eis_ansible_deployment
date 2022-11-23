@@ -1,0 +1,53 @@
+- name: Login to github registry
+  shell: "echo $CR_PAT | docker login ghcr.io -u {{github.username}} -p {{github.password}}"
+
+- name: Replace the docker-compose
+  copy:
+    src: "{{ role_path }}/files/docker-compose.yml"
+    dest: "{{ eis_docker_images_dest }}"
+
+- name: Build containers
+  shell:
+    cmd: "COMPOSE_DOCKER_CLI_BUILD=0 DOCKER_BUILDKIT=0 docker-compose build"
+    chdir: "{{ eis_docker_images_dest }}/"
+
+- name: create registry db
+  shell:
+    cmd: "docker-compose run registry bundle exec rake db:setup:all"
+    chdir: "{{ eis_docker_images_dest }}/"
+  ignore_errors: yes
+
+- name: create rest-whois db
+  shell:
+    cmd: docker-compose run rest-whois bundle exec rake db:setup"
+    chdir: "{{ eis_docker_images_dest }}/"
+  ignore_errors: yes
+
+- name: create auction db
+  shell:
+    cmd: docker-compose run auction_center bundle exec rake db:setup
+    chdir: "{{ eis_docker_images_dest }}/"
+  ignore_errors: yes
+
+- name: create eis_billing db
+  shell:
+    cmd: docker-compose run eis_billing_system bundle exec rails db:create db:migrate db:seed
+    chdir: "{{ eis_docker_images_dest }}/"
+  ignore_errors: yes
+
+
+- name: create eis_billing db
+  shell:
+    cmd: docker-compose run registrar_center bundle exec rails assets:clobber assets:precompile
+    chdir: "{{ eis_docker_images_dest }}/"
+  ignore_errors: yes
+
+
+- name: Run eis containers
+  shell:
+    cmd: "docker-compose up -d"
+    chdir: "{{ eis_docker_images_dest }}/"
+
+
+
+
